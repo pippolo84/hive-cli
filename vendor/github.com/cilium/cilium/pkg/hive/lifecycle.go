@@ -81,7 +81,9 @@ func (lc *DefaultLifecycle) Append(hook HookInterface) {
 
 func (lc *DefaultLifecycle) Start(ctx context.Context) error {
 	lc.mu.Lock()
-	defer lc.mu.Unlock()
+	hooks := make([]HookInterface, len(lc.hooks))
+	copy(hooks, lc.hooks)
+	lc.mu.Unlock()
 
 	// Wrap the context to make sure it gets cancelled after
 	// start hooks have completed in order to discourage using
@@ -89,7 +91,7 @@ func (lc *DefaultLifecycle) Start(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	for _, hook := range lc.hooks {
+	for _, hook := range hooks {
 		fnName, exists := getHookFuncName(hook, true)
 
 		if !exists {
@@ -114,7 +116,9 @@ func (lc *DefaultLifecycle) Start(ctx context.Context) error {
 
 func (lc *DefaultLifecycle) Stop(ctx context.Context) error {
 	lc.mu.Lock()
-	defer lc.mu.Unlock()
+	hooks := make([]HookInterface, len(lc.hooks))
+	copy(hooks, lc.hooks)
+	lc.mu.Unlock()
 
 	// Wrap the context to make sure it gets cancelled after
 	// stop hooks have completed in order to discourage using
@@ -127,7 +131,7 @@ func (lc *DefaultLifecycle) Stop(ctx context.Context) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		hook := lc.hooks[lc.numStarted-1]
+		hook := hooks[lc.numStarted-1]
 
 		fnName, exists := getHookFuncName(hook, false)
 		if !exists {
